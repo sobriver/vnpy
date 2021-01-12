@@ -176,10 +176,10 @@ class BarGenerator:
 
     def __init__(
         self,
-        on_bar: Callable,
-        window: int = 0,
-        on_window_bar: Callable = None,
-        interval: Interval = Interval.MINUTE
+        on_bar: Callable, # 该回调函数返回产生的1分钟的数据
+        window: int = 0, # 需要通过1分钟的数据合成window的数据
+        on_window_bar: Callable = None, # 该回调函数返回n分钟的数据
+        interval: Interval = Interval.MINUTE # 返回的数据类型
     ):
         """Constructor"""
         self.bar: BarData = None
@@ -198,6 +198,7 @@ class BarGenerator:
     def update_tick(self, tick: TickData) -> None:
         """
         Update new tick data into generator.
+        用tick来生成1分钟的K线数据
         """
         new_minute = False
 
@@ -218,7 +219,7 @@ class BarGenerator:
             self.bar.datetime = self.bar.datetime.replace(
                 second=0, microsecond=0
             )
-            self.on_bar(self.bar)
+            self.on_bar(self.bar) # 将数据传送出去
 
             new_minute = True
 
@@ -257,6 +258,7 @@ class BarGenerator:
     def update_bar(self, bar: BarData) -> None:
         """
         Update 1 minute bar into generator
+        用1分钟的K线数据合成n分钟的K线数据
         """
         # If not inited, creaate window bar object
         if not self.window_bar:
@@ -342,8 +344,8 @@ class ArrayManager(object):
     def __init__(self, size: int = 100):
         """Constructor"""
         self.count: int = 0
-        self.size: int = size
-        self.inited: bool = False
+        self.size: int = size # 存储的数据量
+        self.inited: bool = False # 表示该管道初始化是否已经完成, 即数据量要大于等于size
 
         self.open_array: np.ndarray = np.zeros(size)
         self.high_array: np.ndarray = np.zeros(size)
@@ -355,6 +357,7 @@ class ArrayManager(object):
     def update_bar(self, bar: BarData) -> None:
         """
         Update new bar data into array manager.
+        更新管道数据
         """
         self.count += 1
         if not self.inited and self.count >= self.size:

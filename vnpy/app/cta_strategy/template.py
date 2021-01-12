@@ -29,6 +29,7 @@ class CtaTemplate(ABC):
         self.strategy_name = strategy_name
         self.vt_symbol = vt_symbol
 
+        # 三个初始化参数
         self.inited = False
         self.trading = False
         self.pos = 0
@@ -148,29 +149,38 @@ class CtaTemplate(ABC):
         """
         pass
 
+    # ----------------四个交易函数START--------------------------------------------
     def buy(self, price: float, volume: float, stop: bool = False, lock: bool = False):
         """
         Send buy order to open a long position.
+        开多
+        @param stop
+        @param lock
         """
         return self.send_order(Direction.LONG, Offset.OPEN, price, volume, stop, lock)
 
     def sell(self, price: float, volume: float, stop: bool = False, lock: bool = False):
         """
         Send sell order to close a long position.
+        平多
         """
         return self.send_order(Direction.SHORT, Offset.CLOSE, price, volume, stop, lock)
 
     def short(self, price: float, volume: float, stop: bool = False, lock: bool = False):
         """
         Send short order to open as short position.
+        开空
         """
         return self.send_order(Direction.SHORT, Offset.OPEN, price, volume, stop, lock)
 
     def cover(self, price: float, volume: float, stop: bool = False, lock: bool = False):
         """
         Send cover order to close a short position.
+        平空
         """
         return self.send_order(Direction.LONG, Offset.CLOSE, price, volume, stop, lock)
+
+    # ----------------四个交易函数END--------------------------------------------
 
     def send_order(
         self,
