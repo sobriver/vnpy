@@ -10,8 +10,7 @@ from copy import copy
 from tzlocal import get_localzone
 
 from PyQt5 import QtCore, QtGui, QtWidgets, Qt
-import rqdatac
-import numpy as np
+import importlib_metadata
 
 import vnpy
 from vnpy.event import Event, EventEngine
@@ -205,7 +204,12 @@ class BaseMonitor(QtWidgets.QTableWidget):
         self.cells: Dict[str, dict] = {}
 
         self.init_ui()
+        self.load_setting()
         self.register_event()
+
+    def __del__(self) -> None:
+        """"""
+        self.save_setting()
 
     def init_ui(self) -> None:
         """"""
@@ -324,9 +328,13 @@ class BaseMonitor(QtWidgets.QTableWidget):
         with open(path, "w") as f:
             writer = csv.writer(f, lineterminator="\n")
 
-            writer.writerow(self.headers.keys())
+            headers = [d["display"] for d in self.headers.values()]
+            writer.writerow(headers)
 
             for row in range(self.rowCount()):
+                if self.isRowHidden(row):
+                    continue
+
                 row_data = []
                 for column in range(self.columnCount()):
                     item = self.item(row, column)
@@ -341,6 +349,20 @@ class BaseMonitor(QtWidgets.QTableWidget):
         Show menu with right click.
         """
         self.menu.popup(QtGui.QCursor.pos())
+
+    def save_setting(self) -> None:
+        """"""
+        settings = QtCore.QSettings(self.__class__.__name__, "custom")
+        settings.setValue("column_state", self.horizontalHeader().saveState())
+
+    def load_setting(self) -> None:
+        """"""
+        settings = QtCore.QSettings(self.__class__.__name__, "custom")
+        column_state = settings.value("column_state")
+
+        if isinstance(column_state, QtCore.QByteArray):
+            self.horizontalHeader().restoreState(column_state)
+            self.horizontalHeader().setSortIndicator(-1, QtCore.Qt.AscendingOrder)
 
 
 class TickMonitor(BaseMonitor):
@@ -543,6 +565,10 @@ class ConnectDialog(QtWidgets.QDialog):
 
                 if "密码" in field_name:
                     widget.setEchoMode(QtWidgets.QLineEdit.Password)
+                
+                if field_type == int:
+                    validator = QtGui.QIntValidator()
+                    widget.setValidator(validator)
 
             form.addRow(f"{field_name} <{field_type.__name__}>", widget)
             self.widgets[field_name] = (widget, field_type)
@@ -563,13 +589,15 @@ class ConnectDialog(QtWidgets.QDialog):
             if field_type == list:
                 field_value = str(widget.currentText())
             else:
-                field_value = field_type(widget.text())
+                try:
+                    field_value = field_type(widget.text())
+                except ValueError:
+                    field_value = field_type()
             setting[field_name] = field_value
 
         save_json(self.filename, setting)
 
         self.main_engine.connect(setting, self.gateway_name)
-
         self.accept()
 
 
@@ -1058,7 +1086,7 @@ class AboutDialog(QtWidgets.QDialog):
 
     def init_ui(self) -> None:
         """"""
-        self.setWindowTitle(f"关于VN Trader")
+        self.setWindowTitle("关于VN Trader")
 
         text = f"""
             By Traders, For Traders.
@@ -1072,8 +1100,9 @@ class AboutDialog(QtWidgets.QDialog):
             vn.py - {vnpy.__version__}
             Python - {platform.python_version()}
             PyQt5 - {Qt.PYQT_VERSION_STR}
-            Numpy - {np.__version__}
-            RQData - {rqdatac.__version__}
+            NumPy - {importlib_metadata.version("numpy")}
+            pandas - {importlib_metadata.version("pandas")}
+            RQData - {importlib_metadata.version("rqdatac")}
             """
 
         label = QtWidgets.QLabel()

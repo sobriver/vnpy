@@ -205,7 +205,8 @@ class QuoteApi(MdApi):
         """
         Callback when API is ready for sending requests or queries.
         """
-        self.qryCommodity()
+        # self.qryCommodity()
+        pass
 
     def onDisconnect(self, reason: int) -> None:
         """
@@ -462,6 +463,8 @@ class TradeApi(TdApi):
         Callback when API is ready for sending requests or queries.
         """
         self.query_account()
+
+        self.qryCommodity()
 
     def onRspQryCommodity(
         self,
@@ -830,15 +833,15 @@ class TradeApi(TdApi):
         }
 
         error_id, sesion, order_id = self.insertOrder(order_req)
-
-        if not order_id:
-            self.gateway.write_log(f"委托请求失败，错误号：{error_id}")
-            return
-
         order = req.create_order_data(
             order_id,
             self.gateway_name
         )
+
+        if error_id:
+            self.gateway.write_log(f"委托请求失败，错误号：{error_id}")
+            order.status = Status.REJECTED
+
         self.gateway.on_order(order)
 
         return order.vt_orderid
